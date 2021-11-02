@@ -111,8 +111,7 @@ module LavinMQ
       %w(ack deliver confirm get get_no_ack publish redeliver reject return_unroutable),
       %w(message_count unacked_count))
 
-    getter name, durable, exclusive, auto_delete, arguments, vhost, consumers, ready,
-      unacked, last_get_time
+    getter name, durable, exclusive, auto_delete, arguments, vhost, consumers, last_get_time
     getter policy : Policy?
     getter operator_policy : OperatorPolicy?
     getter? closed
@@ -338,8 +337,11 @@ module LavinMQ
       @deleted = true
       close
       @state = QueueState::Deleted
-      @vhost.delete_queue(@name)
-      @vhost.trigger_gc!
+      vhost = @vhost
+      vhost.delete_queue(@name)
+      @ready.each do |sp|
+        vhost.decrease_segment_references(sp.segment)
+      end
       @log.info { "(messages=#{message_count}) Deleted" }
       notify_observers(:delete)
       true
@@ -771,7 +773,7 @@ module LavinMQ
 
     protected def delete_message(sp : SegmentPosition) : Nil
       @deliveries.delete(sp) if @delivery_limit
-      @vhost.dirty = true
+      @vhost.decrease_segment_references(sp.segment)
     end
 
     def compact
@@ -866,13 +868,15 @@ module LavinMQ
       @log.info { "Purging at most #{max_count || "all"} messages" }
       delete_count = 0_u32
       if max_count.nil? || max_count >= @ready.size
-        delete_count += @ready.purge
+        @ready.each do |sp|
+          vhost.decrease_segment_references(sp.segment)
+        end
+        delete_count = @ready.purge
       else
-        max_count.times { @ready.shift? && (delete_count += 1) }
+        max_count.times { (sp = @ready.shift?) && (delete_count += 1) && vhost.decrease_segment_references(sp.segment) }
       end
       @log.info { "Purged #{delete_count} messages" }
-      @vhost.trigger_gc! if trigger_gc
-      delete_count
+      delete_count.to_u32
     end
 
     def match?(frame)
