@@ -57,15 +57,15 @@ module LavinMQ
       Dir.mkdir_p File.join(@data_dir, "tmp")
       File.write(File.join(@data_dir, ".vhost"), @name)
       load_limits
-      @segments = load_segments_on_disk
+      @segments = segments = load_segments_on_disk
       @segment_references = ZeroReferenceCounter(UInt32).new do |segment|
-        next if @segments.last_key == segment
-        if seg = @segments.delete(segment)
+        next if segments.last_key == segment
+        if seg = segments.delete(segment)
           seg.delete
           seg.close
         end
       end
-      @wfile = @segments.last_value
+      @wfile = segments.last_value
       @operator_policies = ParameterStore(OperatorPolicy).new(@data_dir, "operator_policies.json", @log)
       @policies = ParameterStore(Policy).new(@data_dir, "policies.json", @log)
       @parameters = ParameterStore(Parameter).new(@data_dir, "parameters.json", @log)
