@@ -399,12 +399,12 @@ module LavinMQ
       # @log.debug { "Enqueuing message sp=#{sp}" }
       reject_on_overflow(sp)
       @ready.push(sp)
+      @vhost.increase_segment_references(sp.segment)
       drop_overflow unless immediate_delivery?
       @publish_count += 1
       if sp.expiration_ts > 0
         refresh_ttl_timeout
       end
-      @vhost.increase_segment_references(sp.segment)
       # @log.debug { "Enqueued successfully #{sp} ready=#{@ready.size} unacked=#{unacked_count} consumers=#{@consumers.size}" }
       true
     rescue Channel::ClosedError
