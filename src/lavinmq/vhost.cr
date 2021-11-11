@@ -60,9 +60,9 @@ module LavinMQ
       @segments = segments = load_segments_on_disk
       @segment_references = ZeroReferenceCounter(UInt32).new do |segment|
         next if segments.last_key == segment
-        if seg = segments.delete(segment)
-          seg.delete
-          seg.close
+        if mfile = segments.delete(segment)
+          mfile.delete
+          mfile.close
         end
       end
       @wfile = segments.last_value
@@ -73,6 +73,7 @@ module LavinMQ
       @upstreams = Federation::UpstreamStore.new(self)
       load!
       spawn save!, name: "VHost/#{@name}#save!"
+      delete_unused_segments
     end
 
     def max_connections=(value : Int32) : Nil
@@ -832,7 +833,19 @@ module LavinMQ
         @log.info { "vhost=#{@name} queue=#{queue.name} action=purge_and_close_consumers " \
                     "purged_messages=#{purged_msgs}" }
       end
-      trigger_gc!
+    end
+
+    private def delete_unused_segments
+      current_segment = @segments.last_key
+      @segments.reject! do |segment, mfile|
+        next if current_segment == segment
+        if !@segment_references.has_key?(segment)
+          @log.info { "Deleting unused segment #{segment}" }
+          mfile.delete
+          mfile.close
+          next true
+        end
+      end
     end
 
     def event_tick(event_type)

@@ -43,5 +43,9 @@ module AvalancheMQ
     def capacity
       @counter.capacity
     end
+
+    def has_key?(k : T)
+      @counter.has_key? k
+    end
   end
 end
