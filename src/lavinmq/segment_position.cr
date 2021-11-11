@@ -7,12 +7,13 @@ module LavinMQ
       HasDLX
     end
 
+    # Order is important here!
     getter segment : UInt32
     getter position : UInt32
     getter bytesize : UInt32
-    getter expiration_ts : Int64
-    getter priority : UInt8
     getter flags : SPFlags
+    getter priority : UInt8
+    getter expiration_ts : Int64
     BYTESIZE = 22
 
     def_equals_and_hash @segment, @position
