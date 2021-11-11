@@ -28,13 +28,14 @@ module LavinMQ
         end
       end
 
-      def delete(sp : SegmentPosition)
+      def delete(sp : SegmentPosition) : Nil
         @lock.synchronize do
           unacked = @unacked
           if idx = unacked.bsearch_index { |u| u.sp >= sp }
             if unacked[idx].sp == sp
               @bytesize -= sp.bytesize
               unacked.delete_at(idx)
+              compact
             end
           end
         end
@@ -50,20 +51,9 @@ module LavinMQ
               true
             end
           end
+          compact
         end
         consumer_unacked
-      end
-
-      def size
-        @unacked.size
-      end
-
-      def [](index) : Unack
-        @unacked[index]
-      end
-
-      def []?(index) : Unack?
-        @unacked[index]?
       end
 
       def sum(&blk : Unack -> _) : UInt64
@@ -87,6 +77,10 @@ module LavinMQ
         @unacked.min_of(&blk)
       end
 
+      def size
+        @unacked.size
+      end
+
       def capacity
         @unacked.capacity
       end
@@ -103,18 +97,10 @@ module LavinMQ
         end
       end
 
-      def compact
-        @lock.synchronize do
-          @unacked = Deque(Unack).new(@unacked.size) { |i| @unacked[i] }
-        end
-      end
-
-      def lock
-        @lock.lock
-      end
-
-      def unlock
-        @lock.unlock
+      private def compact : Nil
+        unacked = @unacked
+        return unless unacked.capacity > unacked.size * 2
+        @unacked = Deque(Unack).new(unacked.size) { |i| unacked[i] }
       end
 
       def purge

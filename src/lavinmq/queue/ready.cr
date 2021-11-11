@@ -31,6 +31,7 @@ module LavinMQ
         @lock.synchronize do
           sp = @ready.shift
           @bytesize -= sp.bytesize
+          compact
           sp
         end
       end
@@ -39,6 +40,7 @@ module LavinMQ
         @lock.synchronize do
           if sp = @ready.shift?
             @bytesize -= sp.bytesize
+            compact
             sp
           else
             notify_empty(true)
@@ -48,25 +50,20 @@ module LavinMQ
 
       # Shift until block breaks or it returns false
       # If broken with false yield, return the message to the queue
-      def shift(&blk : SegmentPosition -> Bool)
+      def shift(&blk : SegmentPosition -> Bool) : Nil
         @lock.synchronize do
+          bytesize = 0u64
           loop do
-            sp = @ready.shift? || return notify_empty(true)
+            sp = @ready.shift? || break notify_empty(true)
             ok = yield sp
             unless ok
               @ready.unshift sp
               break
             end
-            @bytesize -= sp.bytesize
+            bytesize += sp.bytesize
           end
-        end
-      end
-
-      # Yields an iterator over all SPs, the deque is locked
-      # while it's being read from
-      def with_all(&blk : Iterator(SegmentPosition) -> Nil)
-        @lock.synchronize do
-          yield @ready.each
+          @bytesize -= bytesize
+          compact
         end
       end
 
@@ -137,6 +134,7 @@ module LavinMQ
             @ready.shift
             @bytesize -= sp.bytesize
             notify_empty(true) if @ready.empty?
+            compact
             return true
           else
             if idx = @ready.bsearch_index { |rsp| rsp >= sp }
@@ -144,6 +142,7 @@ module LavinMQ
                 @ready.delete_at(idx)
                 @bytesize -= sp.bytesize
                 notify_empty(true) if @ready.empty?
+                compact
                 return true
               end
             end
@@ -160,6 +159,7 @@ module LavinMQ
             yield sp
           end
           notify_empty(true) if @ready.empty?
+          compact
         end
       end
 
@@ -171,6 +171,7 @@ module LavinMQ
             yield sp
           end
           notify_empty(true) if @ready.empty?
+          compact
         end
       end
 
@@ -231,22 +232,10 @@ module LavinMQ
         @ready.capacity
       end
 
-      def compact
-        @lock.synchronize do
-          @ready = Deque(SegmentPosition).new(@ready.size) { |i| @ready[i] }
-        end
-      end
-
-      def lock
-        @lock.lock
-      end
-
-      def unlock
-        @lock.unlock
-      end
-
-      def to_a
-        @ready.to_a
+      private def compact : Nil
+        ready = @ready
+        return unless ready.capacity > ready.size * 2
+        @ready = Deque(SegmentPosition).new(ready.size) { |i| ready[i] }
       end
 
       def avg_bytesize
