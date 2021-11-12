@@ -344,7 +344,6 @@ module LavinMQ
       end
       @log.info { "(messages=#{message_count}) Deleted" }
       notify_observers(:delete)
-      GC.collect
       true
     end
 
