@@ -99,9 +99,11 @@ module LavinMQ
 
       private def compact : Nil
         unacked = @unacked
-        return unless unacked.capacity > unacked.size * 2
-        @unacked = Deque(Unack).new(unacked.size) { |i| unacked[i] }
-        GC.collect
+        return unless unacked.capacity > unacked.size + 2**17 # when there's 3MB free in the deque
+        {% unless flag?(:release) %}
+          puts "compacting internal unacked queue capacity=#{unacked.capacity} size=#{unacked.size}"
+        {% end %}
+        @unacked = unacked.dup
       end
 
       def purge

@@ -234,9 +234,11 @@ module LavinMQ
 
       private def compact : Nil
         ready = @ready
-        return unless ready.capacity > ready.size * 2
-        @ready = Deque(SegmentPosition).new(ready.size) { |i| ready[i] }
-        GC.collect
+        return unless ready.capacity > ready.size + 2**17 # when there's 3MB free in the deque
+        {% unless flag?(:release) %}
+          puts "compacting internal ready queue capacity=#{ready.capacity} size=#{ready.size}"
+        {% end %}
+        @ready = ready.dup
       end
 
       def avg_bytesize
