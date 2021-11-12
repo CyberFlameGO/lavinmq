@@ -11,8 +11,8 @@ module LavinMQ
       @lock = Mutex.new(:checked)
       getter bytesize = 0u64
 
-      def initialize(capacity = 8)
-        @unacked = Deque(Unack).new(capacity)
+      def initialize(@initial_capacity = 1024)
+        @unacked = Deque(Unack).new(@initial_capacity)
       end
 
       def push(sp : SegmentPosition, consumer : Client::Channel::Consumer?)
@@ -35,7 +35,6 @@ module LavinMQ
             if unacked[idx].sp == sp
               @bytesize -= sp.bytesize
               unacked.delete_at(idx)
-              compact
             end
           end
         end
@@ -97,13 +96,16 @@ module LavinMQ
         end
       end
 
-      private def compact : Nil
+      def compact : Nil
         unacked = @unacked
-        return unless unacked.capacity > unacked.size + 2**17 # when there's 3MB free in the deque
-        {% unless flag?(:release) %}
-          puts "compacting internal unacked queue capacity=#{unacked.capacity} size=#{unacked.size}"
-        {% end %}
-        @unacked = unacked.dup
+        if (unacked.empty? && unacked.capacity > @initial_capacity) || unacked.capacity > unacked.size + 2**17 # when there's 3MB free in the deque
+          {% unless flag?(:release) %}
+            puts "compacting internal unacked queue capacity=#{unacked.capacity} size=#{unacked.size}"
+          {% end %}
+          capacity = Math.max(unacked.size, @initial_capacity)
+          @unacked = Deque(Unack).new(capacity)
+          unacked.each { |u| @unacked << u }
+        end
       end
 
       def purge

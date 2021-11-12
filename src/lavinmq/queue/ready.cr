@@ -9,7 +9,7 @@ module LavinMQ
       getter empty_change = Channel(Bool).new
       getter bytesize = 0u64
 
-      def initialize(initial_capacity = 1024)
+      def initialize(initial_capacity = 4096)
         @initial_capacity = initial_capacity.to_i32
         @ready = Deque(SegmentPosition).new(@initial_capacity)
       end
@@ -31,7 +31,6 @@ module LavinMQ
         @lock.synchronize do
           sp = @ready.shift
           @bytesize -= sp.bytesize
-          compact
           sp
         end
       end
@@ -40,7 +39,6 @@ module LavinMQ
         @lock.synchronize do
           if sp = @ready.shift?
             @bytesize -= sp.bytesize
-            compact
             sp
           else
             notify_empty(true)
@@ -63,7 +61,6 @@ module LavinMQ
             bytesize += sp.bytesize
           end
           @bytesize -= bytesize
-          compact
         end
       end
 
@@ -232,13 +229,16 @@ module LavinMQ
         @ready.capacity
       end
 
-      private def compact : Nil
+      def compact : Nil
         ready = @ready
-        return unless ready.capacity > ready.size + 2**17 # when there's 3MB free in the deque
-        {% unless flag?(:release) %}
-          puts "compacting internal ready queue capacity=#{ready.capacity} size=#{ready.size}"
-        {% end %}
-        @ready = ready.dup
+        if (ready.empty? && ready.capacity > @initial_capacity) || ready.capacity > ready.size + 2**17 # when there's 3MB free in the deque
+          {% unless flag?(:release) %}
+            puts "compacting internal ready queue capacity=#{ready.capacity} size=#{ready.size}"
+          {% end %}
+          capacity = Math.max(ready.size, @initial_capacity)
+          @ready = Deque(SegmentPosition).new(capacity)
+          ready.each { |u| @ready << u }
+        end
       end
 
       def avg_bytesize
