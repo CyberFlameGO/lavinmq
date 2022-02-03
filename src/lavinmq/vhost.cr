@@ -199,6 +199,8 @@ module LavinMQ
 
     def decrease_segment_references(segment : UInt32)
       @segment_references.dec(segment)
+    rescue KeyError
+      @log.warn "Segment #{segment} missing from segment_references"
     end
 
     private def find_all_queues(ex : Exchange, routing_key : String,
