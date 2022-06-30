@@ -1,7 +1,7 @@
 # Build docs in npm container
 FROM --platform=$BUILDPLATFORM node:lts AS docbuilder
 WORKDIR /tmp
-RUN npm install -g redoc-cli
+RUN npm install redoc-cli
 COPY Makefile shard.yml .
 COPY openapi openapi
 RUN make docs
