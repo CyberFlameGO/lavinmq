@@ -17,14 +17,14 @@ COPY --from=docbuilder /tmp/static/docs/index.html static/docs/index.html
 COPY ./static ./static
 COPY ./src ./src
 ARG TARGETARCH
-RUN make objects target=$TARGETARCH-unknown-linux-gnu -j2
+RUN make objects target=$TARGETARCH-unknown-linux-gnu -j2 DOCS=
 
 # Link object files on target platform
 FROM 84codes/crystal:1.4.1-ubuntu-22.04 AS target-builder
 WORKDIR /tmp
 COPY Makefile .
 COPY --from=builder /tmp/bin bin
-RUN make all -j && rm bin/*.*
+RUN make all -j DOCS= && rm bin/*.*
 
 # Resulting image with minimal layers
 FROM ubuntu:22.04
