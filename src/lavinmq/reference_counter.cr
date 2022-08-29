@@ -1,4 +1,4 @@
-module AvalancheMQ
+module LavinMQ
   # A reference counter which performs an action
   # when the counter goes down to zero again
   class ZeroReferenceCounter(T)

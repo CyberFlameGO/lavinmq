@@ -48,6 +48,7 @@ module LavinMQ
     @gc_runs = 0
     @gc_timing = Hash(String, Float64).new { |h, k| h[k] = 0 }
     @log : Log
+    @segment_references : ZeroReferenceCounter(UInt32)
 
     def initialize(@name : String, @server_data_dir : String,
                    @default_user : User)
@@ -200,7 +201,7 @@ module LavinMQ
     def decrease_segment_references(segment : UInt32)
       @segment_references.dec(segment)
     rescue KeyError
-      @log.warn "Segment #{segment} missing from segment_references"
+      @log.warn { "Segment #{segment} missing from segment_references" }
     end
 
     private def find_all_queues(ex : Exchange, routing_key : String,

@@ -152,7 +152,7 @@ describe LavinMQ::DurableQueue do
   end
 end
 
-describe AvalancheMQ::VHost do
+describe LavinMQ::VHost do
   pending "GC segments" do
     vhost = s.vhosts["/"]
     vhost.queues.each_value &.delete
