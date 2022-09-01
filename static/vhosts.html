@@ -1,24 +1,26 @@
 <!DOCTYPE html>
 <html lang="en">
+
   <head>
     <title>Virtual Hosts | LavinMQ</title>
     <link href="/main.css" rel="stylesheet">
     <meta name="google" content="notranslate">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="shortcut icon" type="image/png" href="/img/favicon.png"/>
+    <link rel="shortcut icon" type="image/png" href="/img/favicon.png" />
     <link rel="apple-touch-icon" href="/img/apple-touch-icon-iphone.png" />
     <link rel="apple-touch-icon" sizes="72x72" href="/img/apple-touch-icon-ipad.png" />
     <link rel="apple-touch-icon" sizes="114x114" href="/img/apple-touch-icon-iphone4.png" />
     <script type="module" src="/js/layout.js"></script>
   </head>
+
   <body>
     <header>
       <h2>
         Virtual Hosts
         <small id="table-count"></small>
       </h2>
-      <nav id="user-menu"/>
+      <nav id="user-menu" />
     </header>
     <nav id="menu"></nav>
     <main>
@@ -33,6 +35,7 @@
                 <th data-sort-key="ready">Ready</th>
                 <th data-sort-key="unacked">Unacked</th>
                 <th data-sort-key="total">Total</th>
+                <th data-sort-key="last_activity">Last Activity</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -43,7 +46,7 @@
         <h3>Add virtual host</h3>
         <label>
           <span>Name</span>
-          <input type="text" name="name" required>
+          <input type="text" name="name" required />
         </label>
         <button type="submit" class="btn-primary">Add virtual host</button>
       </form>
@@ -63,7 +66,6 @@
         search: true
       }
       const vhostTable = Table.renderTable('table', tableOptions, (tr, item, all) => {
-
         const urlEncodedVhost = encodeURIComponent(item.name)
         const permissionsUrl = '/api/vhosts/' + urlEncodedVhost + '/permissions'
         const permissionsPromise = new Promise(function (resolve, reject) {
@@ -71,8 +73,8 @@
             window.sessionStorage.setItem(permissionsUrl, JSON.stringify(permissions))
             resolve(permissions)
           }).catch(e => {
-              document.getElementById("table-error").textContent = e.status === 401 ? e.body + ": You need administrator role to see this view" : e.body
-              reject(e)
+            document.getElementById('table-error').textContent = e.status === 401 ? e.body + ': You need administrator role to see this view' : e.body
+            reject(e)
           })
         })
         permissionsPromise.then(permissions => {
@@ -87,6 +89,7 @@
           Table.renderCell(tr, 2, Helpers.formatNumber(item.messages_ready), 'center')
           Table.renderCell(tr, 3, Helpers.formatNumber(item.messages_unacknowledged), 'center')
           Table.renderCell(tr, 4, Helpers.formatNumber(item.messages), 'center')
+          Table.renderCell(tr, 5, Helpers.formatTimestamp(item.last_activity), 'center')
         })
       })
 
@@ -103,4 +106,5 @@
       })
     </script>
   </body>
+
 </html>

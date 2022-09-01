@@ -48,6 +48,7 @@ module LavinMQ
     @gc_runs = 0
     @gc_timing = Hash(String, Float64).new { |h, k| h[k] = 0 }
     @log : Log
+    @last_activity = Time.utc
 
     def initialize(@name : String, @server_data_dir : String,
                    @default_user : User)
@@ -99,6 +100,10 @@ module LavinMQ
           end
         end
       end
+    end
+
+    def update_last_activity
+      @last_activity = Time.utc unless @connections.empty?
     end
 
     def inspect(io : IO)
@@ -304,6 +309,7 @@ module LavinMQ
         dir:           @dir,
         tracing:       false,
         cluster_state: NamedTuple.new,
+        last_activity: @last_activity,
       }
     end
 
