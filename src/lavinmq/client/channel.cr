@@ -286,7 +286,7 @@ module LavinMQ
         confirm_ack
       end
 
-      def deliver(frame, msg, redelivered = false)
+      def deliver(frame, msg, redelivered = false) : Bool
         unless @running
           @log.debug { "Channel is closed so is not sending #{frame.inspect}" }
           return false
@@ -522,14 +522,6 @@ module LavinMQ
           unack.queue.reject(unack.sp, true) if unack.consumer.nil?
         end
         send AMQP::Frame::Basic::RecoverOk.new(frame.channel)
-        if frame.requeue
-          @consumers.each do |c|
-            q = c.queue
-            # FIXME
-            # q.consumer_available
-            q.message_available
-          end
-        end
       end
 
       def close
