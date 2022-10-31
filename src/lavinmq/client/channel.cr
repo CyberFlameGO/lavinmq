@@ -561,7 +561,7 @@ module LavinMQ
         @log.debug { "Cancelling consumer '#{frame.consumer_tag}'" }
         if idx = @consumers.index { |cons| cons.tag == frame.consumer_tag }
           c = @consumers.delete_at idx
-          c.queue.rm_consumer(c, basic_cancel: true)
+          c.close(basic_cancel: true)
         end
         unless frame.no_wait
           send AMQP::Frame::Basic::CancelOk.new(frame.channel, frame.consumer_tag)
