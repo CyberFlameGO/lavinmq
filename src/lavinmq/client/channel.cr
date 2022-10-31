@@ -524,7 +524,7 @@ module LavinMQ
         @running = false
         @consumers.each do |c|
           delete_consumers_unacked(c)
-          c.queue.rm_consumer(c)
+          c.close
         end
         @consumers.clear
         delete_all_unacked do |unack|
