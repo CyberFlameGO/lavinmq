@@ -54,6 +54,14 @@ module LavinMQ
 
     @consumers_empty_change = Channel(Bool).new
 
+    def ready_empty?
+      @ready.empty?
+    end
+
+    def ready_empty_change
+      @ready.empty_change
+    end
+
     def queue_expire_loop
       loop do
         if @consumers.empty? && (ttl = queue_expiration_ttl)

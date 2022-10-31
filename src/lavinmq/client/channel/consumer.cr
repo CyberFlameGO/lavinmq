@@ -65,12 +65,12 @@ module LavinMQ
                 ::Channel.receive_first(@queue.consumers.map(&.has_capacity))
               end
             end
-            return true if @flow && !@queue.paused? && !@queue.ready.empty?
+            return true if @flow && !@queue.paused? && !@queue.ready_empty?
             @log.debug { "Waiting for msg or queue/channel flow change" }
             select
             when is_flow = @flow_change.receive
               @log.debug { "Channel flow=#{is_flow}" }
-            when is_empty = @queue.ready.empty_change.receive
+            when is_empty = @queue.ready_empty_change.receive
               @log.debug { "Queue is #{is_empty ? "" : "not"} empty" }
             when is_paused = @queue.paused_change.receive
               @log.debug { "Queue is #{is_paused ? "" : "not"} paused" }
