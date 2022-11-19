@@ -1,3 +1,23 @@
+# Base layer
+FROM --platform=$BUILDPLATFORM 84codes/crystal:1.6.2-ubuntu-22.04 AS base
+WORKDIR /tmp
+COPY shard.yml shard.lock .
+RUN shards install --production
+COPY ./static ./static
+COPY ./src ./src
+
+# Run specs on build platform
+FROM --platform=$BUILDPLATFORM base AS spec
+COPY ./spec ./spec
+RUN crystal spec --order random
+
+# Lint in another layer
+FROM --platform=$BUILDPLATFORM base AS lint
+RUN shards install # install ameba only in this layer
+COPY .ameba.yml .
+RUN bin/ameba
+RUN crystal tool format --check
+
 # Build docs in npm container
 FROM --platform=$BUILDPLATFORM node:lts AS docbuilder
 WORKDIR /tmp
@@ -7,20 +27,16 @@ COPY openapi openapi
 RUN make docs
 
 # Build objects file on build platform for speed
-FROM --platform=$BUILDPLATFORM 84codes/crystal:1.6.1-ubuntu-22.04 AS builder
-RUN apt-get update && apt-get install -y make curl
-WORKDIR /tmp
-COPY Makefile shard.yml shard.lock .
+FROM --platform=$BUILDPLATFORM base AS builder
+COPY Makefile .
 RUN make js lib
 COPY --from=docbuilder /tmp/openapi/openapi.yaml openapi/openapi.yaml
 COPY --from=docbuilder /tmp/static/docs/index.html static/docs/index.html
-COPY ./static ./static
-COPY ./src ./src
 ARG TARGETARCH
 RUN make objects target=$TARGETARCH-unknown-linux-gnu -j2
 
 # Link object files on target platform
-FROM 84codes/crystal:1.6.1-ubuntu-22.04 AS target-builder
+FROM 84codes/crystal:1.6.2-ubuntu-22.04 AS target-builder
 WORKDIR /tmp
 COPY Makefile .
 COPY --from=builder /tmp/bin bin
