@@ -114,7 +114,7 @@ module LavinMQ
       %w(ack deliver confirm get get_no_ack publish redeliver reject return_unroutable),
       %w(message_count unacked_count))
 
-    getter name, durable, exclusive, auto_delete, arguments, vhost, consumers, last_get_time
+    getter name, durable, exclusive, auto_delete, arguments, vhost, consumers, ready, last_get_time
     getter policy : Policy?
     getter operator_policy : OperatorPolicy?
     getter? closed
