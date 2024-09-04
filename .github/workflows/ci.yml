@@ -109,7 +109,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y make libevent-2.1-7 openjdk-13-jre-headless
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4.1.7
         with:
           name: bin
           path: bin
@@ -152,7 +152,7 @@ jobs:
       - name: Checkout LavinMQ for bunny_definitions.json
         uses: actions/checkout@v3
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4.1.7
         with:
           name: bin
           path: bin
@@ -196,7 +196,7 @@ jobs:
     continue-on-error: true
 
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4.1.7
         with:
           name: bin
           path: bin
@@ -232,7 +232,7 @@ jobs:
     continue-on-error: true
 
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4.1.7
         with:
           name: bin
           path: bin
@@ -269,7 +269,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4.1.7
         with:
           name: bin
           path: bin
